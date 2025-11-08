@@ -1,5 +1,5 @@
 #include <Arduino.h>
-//#include <AccelStepper.h>
+#include <AccelStepper.h>
 
 #define LED_PIN            13
 #define X_STEP_PIN         54
@@ -49,35 +49,45 @@
 #define TEMP_0_PIN		13   // ANALOG NUMBERING
 #define TEMP_1_PIN		14   // ANALOG NUMBERING
 
+// Create AccelStepper objects for X and Y axes
+AccelStepper stepperX(AccelStepper::DRIVER, X_STEP_PIN, X_DIR_PIN);
+AccelStepper stepperY(AccelStepper::DRIVER, Y_STEP_PIN, Y_DIR_PIN);
+
 void setup() {
   pinMode(LED_PIN, OUTPUT); // Set pin 13 as output
-  pinMode(X_STEP_PIN, OUTPUT);
-  pinMode(X_DIR_PIN, OUTPUT);
   pinMode(X_ENABLE_PIN, OUTPUT);
-  digitalWrite(X_ENABLE_PIN, LOW); // Enable X motor (LOW is typical for enable)
-  digitalWrite(X_DIR_PIN, LOW);   // Set direction (HIGH or LOW as needed)
-
-  pinMode(Y_STEP_PIN, OUTPUT);
-  pinMode(Y_DIR_PIN, OUTPUT);
+  digitalWrite(X_ENABLE_PIN, LOW); // Enable X motor
   pinMode(Y_ENABLE_PIN, OUTPUT);
-  digitalWrite(Y_ENABLE_PIN, LOW); // Enable X motor (LOW is typical for enable)
-  digitalWrite(Y_DIR_PIN, LOW);   // Set direction (HIGH or LOW as needed)
-  //test
+  digitalWrite(Y_ENABLE_PIN, LOW); // Enable Y motor
+
+  // Set max speed and acceleration for steppers
+  stepperX.setMaxSpeed(1000);
+  stepperX.setAcceleration(500);
+  stepperY.setMaxSpeed(1000);
+  stepperY.setAcceleration(500);
 
   Serial.begin(9600);
 }
 
 void loop() {
-  delay(20);             // Wait for 500 milliseconds
-  digitalWrite(LED_PIN, HIGH); // Turn the LED on
-  digitalWrite(X_STEP_PIN, HIGH);
-  digitalWrite(Y_STEP_PIN, HIGH);
-  delay(20);             // Wait for 500 milliseconds
-  digitalWrite(LED_PIN, LOW);  // Turn the LED off
-  digitalWrite(X_STEP_PIN, LOW);
-  digitalWrite(Y_STEP_PIN, LOW);
+  // Example: Move X and Y axes back and forth between 0 and 1000 steps
+  static long targetX = 1000;
+  static long targetY = 1000;
+  static bool forward = true;
 
-  //every 2 seconds send a message over serial
+  stepperX.moveTo(targetX);
+  stepperY.moveTo(targetY);
+  stepperX.run();
+  stepperY.run();
+
+  if (stepperX.distanceToGo() == 0 && stepperY.distanceToGo() == 0) {
+    forward = !forward;
+    targetX = forward ? 1000 : 0;
+    targetY = forward ? 1000 : 0;
+    digitalWrite(LED_PIN, forward ? HIGH : LOW);
+  }
+
+  // Every 2 seconds send a message over serial
   static unsigned long lastMillis = 0;
   if (millis() - lastMillis >= 2000) {
     lastMillis = millis();
